@@ -1,3 +1,4 @@
+// Force new deployment
 import { NextResponse } from 'next/server';
 
 const SHEET_URL =
