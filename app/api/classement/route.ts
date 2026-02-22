@@ -70,7 +70,7 @@ export async function GET() {
     let currentCategory: 'JUNIORS' | 'DAMES' | 'MESSIEURS' | null = null;
     let rank = 0;
 
-    for (let i = 1; i < lines.length; i += 1) {
+    for (let i = 0; i < lines.length; i += 1) {
       const line = lines[i].trim();
       if (!line) continue;
 
