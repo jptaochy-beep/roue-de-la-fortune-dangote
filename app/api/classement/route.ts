@@ -20,48 +20,16 @@ type ClassementResponse = {
   messieurs: ClassementItem[];
 };
 
-function parseCsvLine(line: string): string[] {
-  const values: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i];
-
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      values.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  values.push(current.trim());
-  return values;
-}
-
 export async function GET() {
   try {
     const response = await fetch(SHEET_URL, { cache: 'no-store' });
 
     if (!response.ok) {
-      console.log('Failed to fetch Google Sheet:', response.status);
       return NextResponse.json({ juniors: [], dames: [], messieurs: [] });
     }
 
     const csv = await response.text();
-    const lines = csv.trim().split(/\r?\n/);
-
-    if (lines.length < 2) {
-      console.log('CSV has less than 2 lines:', lines.length);
-      return NextResponse.json({ juniors: [], dames: [], messieurs: [] });
-    }
+    const lines = csv.split('\n');
 
     const juniors: ClassementItem[] = [];
     const dames: ClassementItem[] = [];
@@ -70,66 +38,64 @@ export async function GET() {
     let currentCategory: 'JUNIORS' | 'DAMES' | 'MESSIEURS' | null = null;
     let rank = 0;
 
-    for (let i = 1; i < lines.length; i += 1) {
-      const line = lines[i].trim();
-      if (!line) continue;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.length === 0) continue;
 
-      const values = parseCsvLine(line);
+      // Simple CSV parsing - split by comma
+      const parts = trimmed.split(',').map(p => p.trim());
+      
+      if (parts.length < 3) continue;
 
-      if (values.length < 3) continue;
+      const firstName = parts[0];
+      const lastName = parts[1];
+      const score = parts[2];
 
-      const col0 = values[0].trim();
-      const col1 = values[1].trim();
-      const col2 = values[2].trim();
-
-      // Check if this is a category header line
-      if (col0 === 'JUNIORS' || col0 === 'JUNIORS SERIES') {
+      // Detect category headers
+      if (firstName === 'JUNIORS' || firstName === 'JUNIORS SERIES') {
         currentCategory = 'JUNIORS';
         rank = 0;
         continue;
-      } else if (col0 === 'DAMES') {
+      }
+      if (firstName === 'DAMES') {
         currentCategory = 'DAMES';
         rank = 0;
         continue;
-      } else if (col0 === 'MESSIEURS') {
+      }
+      if (firstName === 'MESSIEURS') {
         currentCategory = 'MESSIEURS';
         rank = 0;
         continue;
       }
 
-      // Skip if we haven't found a category yet
-      if (!currentCategory) continue;
+      // Skip header rows and empty first names
+      if (!currentCategory || !firstName || firstName === 'Prénom') {
+        continue;
+      }
 
-      // Skip header rows (Prénom, Nom columns)
-      if (col0 === 'Prénom' || col0 === '') continue;
+      // Skip invalid rows
+      if (firstName === 'CLASSEMENT' || firstName === 'Trophée' || firstName === '' || !lastName || lastName === 'Nom') {
+        continue;
+      }
 
-      // Try to parse as player data
-      const firstName = col0;
-      const lastName = col1;
-      const score = col2 || '0';
+      // Add valid player
+      rank += 1;
+      const item: ClassementItem = {
+        category: currentCategory,
+        rank: rank.toString(),
+        name: `${firstName} ${lastName}`,
+        score: score || '0',
+        status: 'Actif'
+      };
 
-      // Only add if firstName and lastName are not empty and not header-like
-      if (firstName && lastName && firstName !== 'Nom') {
-        rank += 1;
-        const item: ClassementItem = {
-          category: currentCategory,
-          rank: rank.toString(),
-          name: `${firstName} ${lastName}`,
-          score: score || '0',
-          status: 'Actif'
-        };
-
-        if (currentCategory === 'JUNIORS') {
-          juniors.push(item);
-        } else if (currentCategory === 'DAMES') {
-          dames.push(item);
-        } else if (currentCategory === 'MESSIEURS') {
-          messieurs.push(item);
-        }
+      if (currentCategory === 'JUNIORS') {
+        juniors.push(item);
+      } else if (currentCategory === 'DAMES') {
+        dames.push(item);
+      } else if (currentCategory === 'MESSIEURS') {
+        messieurs.push(item);
       }
     }
-
-    console.log('Parsed data - JUNIORS: ' + juniors.length + ', DAMES: ' + dames.length + ', MESSIEURS: ' + messieurs.length);
 
     return NextResponse.json({
       juniors,
@@ -137,7 +103,7 @@ export async function GET() {
       messieurs
     } satisfies ClassementResponse);
   } catch (error) {
-    console.log('Error fetching classement:', error);
+    console.error('Error:', error);
     return NextResponse.json({ juniors: [], dames: [], messieurs: [] });
   }
 }
