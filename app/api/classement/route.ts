@@ -2,8 +2,7 @@
 import { NextResponse } from 'next/server';
 
 const SHEET_URL =
-  'https://docs.google.com/spreadsheets/d/1Gt6AOK-_Yzgw0vA2fDI449hQYdZtWiueWM67cLEQC7A/export?format=csv&gid=0';
-
+ 'https://docs.google.com/spreadsheets/d/1Gt6AOK-_Yzgw0vA2fDI449hQYdZtWiueWM67cLEQC7A/export?format=csv&gid=183397719';
 export const revalidate = 0;
 
 type ClassementItem = {
