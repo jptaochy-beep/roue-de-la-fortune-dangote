@@ -81,7 +81,7 @@ export default function Home() {
                   <th className="px-6 py-4 text-left font-semibold text-gray-800">Rank</th>
                   <th className="px-6 py-4 text-left font-semibold text-gray-800">Name</th>
                   <th className="px-6 py-4 text-left font-semibold text-gray-800">Score</th>
-                  <th className="px-6 py-4 text-left font-semibold text-gray-800">Status</th>
+                  <th className="px-6 py-4 text-left font-semibold text-gray-800">Score</th>
                 </tr>
               </thead>
               <tbody>
