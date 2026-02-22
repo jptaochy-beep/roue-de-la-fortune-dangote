@@ -20,26 +20,6 @@ type ClassementResponse = {
   messieurs: ClassementItem[];
 };
 
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let insideQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      insideQuotes = !insideQuotes;
-    } else if (char === ',' && !insideQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
-
 export async function GET() {
   try {
     const response = await fetch(SHEET_URL, { cache: 'no-store' });
@@ -60,64 +40,70 @@ export async function GET() {
       const trimmed = line.trim();
       if (!trimmed || trimmed.length === 0) continue;
       
-      const parts = parseCSVLine(line);
-      
-      // Detect category header (must be a single column with the category name)
-      if (parts.length === 1 || (parts.length > 0 && parts[0].toUpperCase().includes('JUNIORS') && parts.slice(1).every(p => !p))) {
-        if (parts[0].toUpperCase().includes('JUNIORS')) {
-          currentCategory = 'JUNIORS';
-          rank = 0;
-          continue;
-        }
+      // Check for category headers - they appear alone in a cell
+      if (trimmed.toUpperCase().includes('JUNIORS')) {
+        currentCategory = 'JUNIORS';
+        rank = 0;
+        continue;
       }
-      if (parts.length === 1 || (parts.length > 0 && parts[0] === 'DAMES' && parts.slice(1).every(p => !p))) {
-        if (parts[0] === 'DAMES') {
-          currentCategory = 'DAMES';
-          rank = 0;
-          continue;
-        }
+      if (trimmed === 'DAMES' || trimmed.startsWith('"DAMES"')) {
+        currentCategory = 'DAMES';
+        rank = 0;
+        continue;
       }
-      if (parts.length === 1 || (parts.length > 0 && parts[0] === 'MESSIEURS' && parts.slice(1).every(p => !p))) {
-        if (parts[0] === 'MESSIEURS') {
-          currentCategory = 'MESSIEURS';
-          rank = 0;
-          continue;
-        }
+      if (trimmed === 'MESSIEURS' || trimmed.startsWith('"MESSIEURS"')) {
+        currentCategory = 'MESSIEURS';
+        rank = 0;
+        continue;
       }
       
-      // Skip if we haven't found a category yet
+      // Skip if no category selected yet
       if (!currentCategory) continue;
       
-      // Need at least 3 non-empty parts for: firstName, lastName, score
-      const nonEmptyParts = parts.filter(p => p && p.length > 0);
-      if (nonEmptyParts.length < 3) continue;
+      // Split CSV with better handling for quoted fields
+      const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, ''));
+      
+      // Skip header rows
+      if (parts[0] === 'Prénom' || parts[0] === '') continue;
+      
+      // Look for valid player entries
+      // We expect: firstName, lastName, score, ... 
+      // All three must be non-empty
+      if (!parts[0] || !parts[1] || !parts[2]) continue;
       
       const firstName = parts[0];
       const lastName = parts[1];
-      const score = parts[2];
+      const scoreStr = parts[2];
       
-      // Skip header rows and invalid entries
-      if (!firstName || !lastName || firstName === 'Prénom' || firstName === 'Nom' || firstName === 'CLASSEMENT' || firstName === 'Trophée') {
+      // Validate this looks like a player row
+      // Skip rows where first name is clearly not a name
+      if (firstName === 'CLASSEMENT' || firstName === 'Trophée' || firstName === 'Sport' || firstName === 'important') {
         continue;
       }
       
-      // Skip if first name appears to be a header or category marker
-      if (['JUNIORS', 'DAMES', 'MESSIEURS', 'JUNIORS SERIES'].includes(firstName.toUpperCase())) {
+      // Skip if this looks like a category or header
+      if (['JUNIORS', 'DAMES', 'MESSIEURS', 'JUNIORS SERIES', 'Prénom', 'Nom'].includes(firstName)) {
         continue;
       }
       
-      // Skip if score is not a valid number
-      if (!score || isNaN(Number(score))) {
+      // Try to parse score - should be a number
+      const score = parseInt(scoreStr, 10);
+      if (isNaN(score)) {
         continue;
       }
       
-      // Valid player entry
+      // Skip if lastName looks like it could be a header
+      if (['BLANCO', 'GORODENCO', 'JAUBERTIE'].includes(lastName) === false && lastName === lastName.toUpperCase() && lastName.length === 0) {
+        continue;
+      }
+      
+      // Valid player! Add them
       rank += 1;
       const item: ClassementItem = {
         category: currentCategory,
         rank: rank.toString(),
         name: `${firstName} ${lastName}`,
-        score: score,
+        score: scoreStr,
         status: 'Actif'
       };
       
