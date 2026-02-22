@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const SHEET_ID = '1Gt6AOK-_Yzgw0vA2fDI449hQYdZtWiueWM67cLEQC7A';
-const SHEET_GID = '183397719';
+const SHEET_GID = '623757801';
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
 
 export const revalidate = 0;
