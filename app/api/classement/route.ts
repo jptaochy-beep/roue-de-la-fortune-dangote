@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Gt6AOK-_Yzgw0vA2fDI449hQYdZtWiueWM67cLEQC7A/export?format=csv&gid=183397719';
+const SHEET_ID = '1Gt6AOK-_Yzgw0vA2fDI449hQYdZtWiueWM67cLEQC7A';
+const SHEET_GID = '183397719';
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
 
 export const revalidate = 0;
 
@@ -50,7 +52,7 @@ export async function GET() {
     const response = await fetch(SHEET_URL, { cache: 'no-store' });
     
     if (!response.ok) {
-      console.log('Failed to fetch Google Sheet');
+      console.log('Failed to fetch Google Sheet:', response.status);
       return NextResponse.json({ juniors: [], dames: [], messieurs: [] });
     }
     
@@ -58,6 +60,7 @@ export async function GET() {
     const lines = csv.trim().split(/\r?\n/);
     
     if (lines.length < 2) {
+      console.log('CSV has less than 2 lines:', lines.length);
       return NextResponse.json({ juniors: [], dames: [], messieurs: [] });
     }
     
@@ -98,6 +101,8 @@ export async function GET() {
         messieurs.push(item);
       }
     }
+    
+    console.log(`Parsed data - JUNIORS: ${juniors.length}, DAMES: ${dames.length}, MESSIEURS: ${messieurs.length}`);
     
     return NextResponse.json({
       juniors,
