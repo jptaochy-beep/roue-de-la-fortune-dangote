@@ -77,8 +77,7 @@ export default function Home() {
 
   return (
     <main className="page">
-      <h1>Golf Tournament Rankings</h1>
-      <p className="subtitle">Live Google Sheets leaderboard</p>
+        <h1>Résultat Trophée AS 2026</h1>      <p className="subtitle">Live Google Sheets leaderboard</p>
 
       {loading && <p>Loading rankings…</p>}
       {error && <p className="error">{error}</p>}
