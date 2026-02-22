@@ -6,15 +6,23 @@ type ClassementItem = {
   category: 'JUNIORS' | 'DAMES' | 'MESSIEURS';
   rank: string;
   name: string;
-  score: string;
-  status: string;
+  scores: Array<{ date: string; score: number }>;
+  total: number;
 };
+
+type ClassementResponse = {
+  events: string[];
+  juniors: ClassementItem[];
+  dames: ClassementItem[];
+  messieurs: ClassementItem[];
+}};
 
 export default function Home() {
   const [items, setItems] = useState<{
     juniors: ClassementItem[];
     dames: ClassementItem[];
     messieurs: ClassementItem[];
+      const [events, setEvents] = useState<string[]>([]);
   }>({ juniors: [], dames: [], messieurs: [] });
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<'JUNIORS' | 'DAMES' | 'MESSIEURS'>('JUNIORS');
@@ -23,6 +31,7 @@ export default function Home() {
     fetch('/api/classement', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
+                      setEvents(data.events);
         setItems(data);
         setLoading(false);
       })
