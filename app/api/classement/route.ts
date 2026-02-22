@@ -46,6 +46,17 @@ export async function GET() {
     { category: 'MESSIEURS', rank: '9', name: 'Michaël Dubourg', score: '10', status: 'Actif' },
     { category: 'MESSIEURS', rank: '10', name: 'Pascal Dumas', score: '10', status: 'Actif' },
     { category: 'MESSIEURS', rank: '11', name: 'Fabien Verger', score: '10', status: 'Actif' },
+        { category: 'MESSIEURS', rank: '12', name: 'Aurélien Cournut', score: '10', status: 'Actif' },
+    { category: 'MESSIEURS', rank: '13', name: 'Alexandre Dubos', score: '10', status: 'Actif' },
+    { category: 'MESSIEURS', rank: '14', name: 'Tod Graham', score: '10', status: 'Actif' },
+    { category: 'MESSIEURS', rank: '15', name: 'Philippe Hequet', score: '10', status: 'Actif' },
+    { category: 'MESSIEURS', rank: '16', name: 'Manuel Jativa Hernandez', score: '10', status: 'Actif' },
+    { category: 'MESSIEURS', rank: '17', name: 'Enzo Jativa-Flores', score: '10', status: 'Actif' },
+    { category: 'MESSIEURS', rank: '18', name: 'Frédéric Paniagua', score: '10', status: 'Actif' },
+    { category: 'MESSIEURS', rank: '19', name: 'Laurent Suere', score: '10', status: 'Actif' },
+    { category: 'MESSIEURS', rank: '20', name: 'Frédéric Tach', score: '10', status: 'Actif' },
+    { category: 'MESSIEURS', rank: '21', name: 'Jean Taochy', score: '10', status: 'Actif' },
+    { category: 'MESSIEURS', rank: '22', name: 'Willem Van Der Wee', score: '10', status: 'Actif' }
   ];
 
   return NextResponse.json({
