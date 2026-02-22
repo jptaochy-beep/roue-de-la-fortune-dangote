@@ -1,8 +1,8 @@
-// Force new deployment
+// Parse all participants from Feuil1
 import { NextResponse } from 'next/server';
 
-const SHEET_URL =
- 'https://docs.google.com/spreadsheets/d/1Gt6AOK-_Yzgw0vA2fDI449hQYdZtWiueWM67cLEQC7A/export?format=csv&gid=183397719';
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Gt6AOK-_Yzgw0vA2fDI449hQYdZtWiueWM67cLEQC7A/export?format=csv&gid=1493330459';
+
 export const revalidate = 0;
 
 type ClassementItem = {
@@ -19,32 +19,12 @@ type ClassementResponse = {
   messieurs: ClassementItem[];
 };
 
-const MOCK_DATA: ClassementResponse = {
-  juniors: [
-    { category: 'JUNIORS' as const, rank: '1', name: 'Ali Konaté', score: '72', status: 'Actif' },
-    { category: 'JUNIORS' as const, rank: '2', name: 'Marie Traoré', score: '75', status: 'Actif' },
-    { category: 'JUNIORS' as const, rank: '3', name: 'Jean Coulibaly', score: '78', status: 'Actif' },
-  ],
-  dames: [
-    { category: 'DAMES' as const, rank: '1', name: 'Fatou Diallo', score: '79', status: 'Actif' },
-    { category: 'DAMES' as const, rank: '2', name: 'Aïssatou Ba', score: '81', status: 'Actif' },
-    { category: 'DAMES' as const, rank: '3', name: 'Sophie Martin', score: '84', status: 'Actif' },
-  ],
-  messieurs: [
-    { category: 'MESSIEURS' as const, rank: '1', name: 'Ousmane Diaworé', score: '68', status: 'Actif' },
-    { category: 'MESSIEURS' as const, rank: '2', name: 'Yacine Sy', score: '70', status: 'Actif' },
-    { category: 'MESSIEURS' as const, rank: '3', name: 'Ibrahim Camara', score: '72', status: 'Actif' },
-  ],
-};
-
 function parseCsvLine(line: string): string[] {
   const values: string[] = [];
   let current = '';
   let inQuotes = false;
-
   for (let i = 0; i < line.length; i += 1) {
     const char = line[i];
-
     if (char === '"') {
       if (inQuotes && line[i + 1] === '"') {
         current += '"';
@@ -59,32 +39,8 @@ function parseCsvLine(line: string): string[] {
       current += char;
     }
   }
-
   values.push(current.trim());
   return values;
-}
-
-function pick(row: Record<string, string>, candidates: string[]): string {
-  for (const key of candidates) {
-    if (row[key] !== undefined && row[key] !== '') return row[key];
-  }
-  return '';
-}
-
-function toItem(row: Record<string, string>): ClassementItem | null {
-  const categoryRaw = pick(row, ['categorie', 'category', 'catégorie']).toUpperCase();
-
-  if (!['JUNIORS', 'DAMES', 'MESSIEURS'].includes(categoryRaw)) {
-    return null;
-  }
-
-  return {
-    category: categoryRaw as ClassementItem['category'],
-    rank: pick(row, ['rang', 'rank', 'position']),
-    name: pick(row, ['nom_complet', 'name']) || `${pick(row, ['prenom', 'prénom'])} ${pick(row, ['nom', 'lastname'])}`.trim(),
-    score: pick(row, ['score', 'points', 'moyenne']),
-    status: pick(row, ['status', 'statut', 'etat', 'état']) || 'N/A'
-  };
 }
 
 export async function GET() {
@@ -92,35 +48,90 @@ export async function GET() {
     const response = await fetch(SHEET_URL, { cache: 'no-store' });
     
     if (!response.ok) {
-      console.log('Google Sheets fetch failed, using mock data');
-      return NextResponse.json(MOCK_DATA);
+      return NextResponse.json({ juniors: [], dames: [], messieurs: [] });
     }
-
+    
     const csv = await response.text();
     const lines = csv.trim().split(/\r?\n/);
-
-    if (lines.length < 2) {
-      return NextResponse.json(MOCK_DATA);
+    
+    const juniors: ClassementItem[] = [];
+    const dames: ClassementItem[] = [];
+    const messieurs: ClassementItem[] = [];
+    
+    let currentCategory = '';
+    let rank = 0;
+    
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i].trim();
+      
+      // Check if line contains category header
+      if (line.includes('JUNIORS')) {
+        currentCategory = 'JUNIORS';
+        rank = 0;
+        continue;
+      } else if (line.includes('DAMES')) {
+        currentCategory = 'DAMES';
+        rank = 0;
+        continue;
+      } else if (line.includes('MESSIEURS')) {
+        currentCategory = 'MESSIEURS';
+        rank = 0;
+        continue;
+      }
+      
+      // Skip empty lines and header lines
+      if (!line || line.includes('CLASSEMENT') || line.includes('Dimanche') || line.includes('Stop') || line.includes('Classement :')) {
+        continue;
+      }
+      
+      const values = parseCsvLine(line);
+      
+      // Skip rows that don't have at least 3 columns (prenom, nom, initial score)
+      if (values.length < 3) {
+        continue;
+      }
+      
+      // Skip header rows
+      if (values[0].toLowerCase().includes('prenom') || values[0].toLowerCase().includes('nom')) {
+        continue;
+      }
+      
+      const prenom = values[0]?.trim() || '';
+      const nom = values[1]?.trim() || '';
+      const scoreStr = values[2]?.trim() || '0';
+      
+      // Skip if no name
+      if (!prenom && !nom) {
+        continue;
+      }
+      
+      if (currentCategory && (prenom || nom)) {
+        rank += 1;
+        const item: ClassementItem = {
+          category: currentCategory as 'JUNIORS' | 'DAMES' | 'MESSIEURS',
+          rank: rank.toString(),
+          name: `${prenom} ${nom}`.trim(),
+          score: scoreStr,
+          status: 'Actif'
+        };
+        
+        if (currentCategory === 'JUNIORS') {
+          juniors.push(item);
+        } else if (currentCategory === 'DAMES') {
+          dames.push(item);
+        } else if (currentCategory === 'MESSIEURS') {
+          messieurs.push(item);
+        }
+      }
     }
-
-    const headers = parseCsvLine(lines[0]).map((header) => header.toLowerCase());
-
-    const rows = lines
-      .slice(1)
-      .map((line) => parseCsvLine(line))
-      .map((values) =>
-        Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ''])) as Record<string, string>
-      )
-      .map(toItem)
-      .filter((item): item is ClassementItem => item !== null);
-
+    
     return NextResponse.json({
-      juniors: rows.filter((item) => item.category === 'JUNIORS'),
-      dames: rows.filter((item) => item.category === 'DAMES'),
-      messieurs: rows.filter((item) => item.category === 'MESSIEURS')
+      juniors,
+      dames,
+      messieurs
     } satisfies ClassementResponse);
   } catch (error) {
-    console.log('Error fetching data, using mock data:', error);
-    return NextResponse.json(MOCK_DATA);
+    console.log('Error fetching data:', error);
+    return NextResponse.json({ juniors: [], dames: [], messieurs: [] });
   }
 }
