@@ -23,62 +23,69 @@ type ClassementResponse = {
 export async function GET() {
   try {
     const response = await fetch(SHEET_URL, { cache: 'no-store' });
-
     if (!response.ok) {
       return NextResponse.json({ juniors: [], dames: [], messieurs: [] });
     }
-
     const csv = await response.text();
     const lines = csv.split('\n');
-
+    
     const juniors: ClassementItem[] = [];
     const dames: ClassementItem[] = [];
     const messieurs: ClassementItem[] = [];
-
+    
     let currentCategory: 'JUNIORS' | 'DAMES' | 'MESSIEURS' | null = null;
     let rank = 0;
-
+    
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.length === 0) continue;
-
-      // Simple CSV parsing - split by comma
+      
+      // Split by comma and trim each part
       const parts = trimmed.split(',').map(p => p.trim());
       
-      if (parts.length < 3) continue;
-
-      const firstName = parts[0];
-      const lastName = parts[1];
-      const score = parts[2];
-
-      // Detect category headers
-      if (firstName === 'JUNIORS' || firstName === 'JUNIORS SERIES') {
+      // Check for category headers - more flexible matching
+      if (parts[0].toUpperCase().includes('JUNIORS') && !parts[1]) {
         currentCategory = 'JUNIORS';
         rank = 0;
         continue;
       }
-      if (firstName === 'DAMES') {
+      if (parts[0] === 'DAMES' && !parts[1]) {
         currentCategory = 'DAMES';
         rank = 0;
         continue;
       }
-      if (firstName === 'MESSIEURS') {
+      if (parts[0] === 'MESSIEURS' && !parts[1]) {
         currentCategory = 'MESSIEURS';
         rank = 0;
         continue;
       }
-
-      // Skip header rows and empty first names
-      if (!currentCategory || !firstName || firstName === 'Prénom') {
+      
+      // Skip if we haven't detected a category yet
+      if (!currentCategory) continue;
+      
+      // Need at least 3 parts: firstName, lastName, score
+      if (parts.length < 3) continue;
+      
+      const firstName = parts[0];
+      const lastName = parts[1];
+      const score = parts[2];
+      
+      // Skip header rows
+      if (!firstName || firstName === 'Prénom' || firstName === 'CLASSEMENT' || firstName === 'Trophée') {
         continue;
       }
-
-      // Skip invalid rows
-      if (firstName === 'CLASSEMENT' || firstName === 'Trophée' || firstName === '' || !lastName || lastName === 'Nom') {
+      
+      // Skip if no last name
+      if (!lastName || lastName === 'Nom' || lastName === '') {
         continue;
       }
-
-      // Add valid player
+      
+      // Skip rows where first name is a category word or decorative
+      if (firstName === 'DAMES' || firstName === 'MESSIEURS' || firstName === 'JUNIORS' || firstName === 'JUNIORS SERIES') {
+        continue;
+      }
+      
+      // Valid player entry
       rank += 1;
       const item: ClassementItem = {
         category: currentCategory,
@@ -87,7 +94,7 @@ export async function GET() {
         score: score || '0',
         status: 'Actif'
       };
-
+      
       if (currentCategory === 'JUNIORS') {
         juniors.push(item);
       } else if (currentCategory === 'DAMES') {
@@ -96,7 +103,7 @@ export async function GET() {
         messieurs.push(item);
       }
     }
-
+    
     return NextResponse.json({
       juniors,
       dames,
