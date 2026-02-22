@@ -20,11 +20,8 @@ type ClassementResponse = {
 };
 
 export default function Home() {
-  const [items, setItems] = useState({juniors: [], dames: [], messieurs: []});
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState('JUNIORS');
-
+const [items, setItems] = useState<{ juniors: ClassementItem[]; dames: ClassementItem[]; messieurs: ClassementItem[] }>({ juniors: [], dames: [], messieurs: [] });  const [events, setEvents] = useState([]);
+const [selectedCategory, setSelectedCategory] = useState<'JUNIORS' | 'DAMES' | 'MESSIEURS'>('JUNIORS');
   useEffect(() => {
     fetch('/api/classement', { cache: 'no-store' }).then(r => r.json()).then(data => {
       setEvents(data.events);
