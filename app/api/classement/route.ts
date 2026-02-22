@@ -82,16 +82,16 @@ export async function GET() {
       const col1 = values[1].trim();
       const col2 = values[2].trim();
 
-      // Check if this is a category header line (check if col1 OR col2 are empty, not just col0)
-      if ((col0 === 'JUNIORS' || col0 === 'JUNIORS SERIES') && col1 === '') {
+      // Check if this is a category header line
+      if (col0 === 'JUNIORS' || col0 === 'JUNIORS SERIES') {
         currentCategory = 'JUNIORS';
         rank = 0;
         continue;
-      } else if (col0 === 'DAMES' && col1 === '') {
+      } else if (col0 === 'DAMES') {
         currentCategory = 'DAMES';
         rank = 0;
         continue;
-      } else if (col0 === 'MESSIEURS' && col1 === '') {
+      } else if (col0 === 'MESSIEURS') {
         currentCategory = 'MESSIEURS';
         rank = 0;
         continue;
@@ -104,32 +104,27 @@ export async function GET() {
       if (col0 === 'Prénom' || col0 === '') continue;
 
       // Try to parse as player data
-      // Format: FirstName | LastName | Score
       const firstName = col0;
       const lastName = col1;
       const score = col2 || '0';
 
-      // Only add if firstName and lastName are not empty and have reasonable values
-      // Numeric scores should be numbers, but names should contain letters
+      // Only add if firstName and lastName are not empty and not header-like
       if (firstName && lastName && firstName !== 'Nom') {
-        // Check if firstName looks like a name (not all numbers)
-        if (!/^\d+$/.test(firstName)) {
-          rank += 1;
-          const item: ClassementItem = {
-            category: currentCategory,
-            rank: rank.toString(),
-            name: `${firstName} ${lastName}`,
-            score: score || '0',
-            status: 'Actif'
-          };
+        rank += 1;
+        const item: ClassementItem = {
+          category: currentCategory,
+          rank: rank.toString(),
+          name: `${firstName} ${lastName}`,
+          score: score || '0',
+          status: 'Actif'
+        };
 
-          if (currentCategory === 'JUNIORS') {
-            juniors.push(item);
-          } else if (currentCategory === 'DAMES') {
-            dames.push(item);
-          } else if (currentCategory === 'MESSIEURS') {
-            messieurs.push(item);
-          }
+        if (currentCategory === 'JUNIORS') {
+          juniors.push(item);
+        } else if (currentCategory === 'DAMES') {
+          dames.push(item);
+        } else if (currentCategory === 'MESSIEURS') {
+          messieurs.push(item);
         }
       }
     }
